@@ -41,11 +41,10 @@ try:
             writer.writeheader()
             csvdata.close()
         after = 0
-        rango = round(total_answers / 20)
-        print(f"Total de preguntas: {total_answers}")
-        open("acciones.log", 'a', encoding='utf-8').writelines(f"Total de preguntas: {total_answers}")
-
-        for i in range(rango):
+        print(f"Total de preguntas: {total_answers} {title}")
+        open("acciones.log", 'a', encoding='utf-8').writelines(f"Total de preguntas: {total_answers} {title}\n")
+        has_next_page = True
+        while has_next_page:
             payload = {
                 "queryName": "UserProfileAnswersMostRecent_RecentAnswers_Query",
                 "extensions": {
@@ -60,6 +59,8 @@ try:
             r = s.post('https://www.quora.com/graphql/gql_para_POST?q=UserProfileAnswersMostRecent_RecentAnswers_Query', data=json.dumps(payload))
             data = r.json()
             data_preguntas = data['data']['user']['recentPublicAndPinnedAnswersConnection']['edges']
+            siguiente_pagina = data['data']['user']['recentPublicAndPinnedAnswersConnection']['pageInfo']['endCursor']
+            has_next_page = data['data']['user']['recentPublicAndPinnedAnswersConnection']['pageInfo']['hasNextPage']
             preguntas = list()
 
             for pregunta in data_preguntas:
@@ -71,18 +72,21 @@ try:
                 for pregunta in preguntas:
                     writer.writerow({"Preguntas": pregunta})
                 csvdata.close()
-            after += 20
-            print(f"Agregados {str(after)} en el CSV...")
-            open("acciones.log", 'a', encoding='utf-8').writelines(f"Agregados {str(after)} en el CSV...")
-            sleep(5)
 
-        print("Empezando Extraer Preguntas hechas del usuario.")
-        open("acciones.log", 'a', encoding='utf-8').writelines("Empezando Extraer Preguntas hechas del usuario.")
+            if has_next_page:
+                after = siguiente_pagina
+                print(f"Agregados {str(after)} en el CSV...")
+                open("acciones.log", 'a', encoding='utf-8').writelines(f"Agregados {str(after)} en el CSV...\n")
+                sleep(5)
+
+        print(f"Empezando Extraer Preguntas hechas del usuario. {title}")
+        open("acciones.log", 'a', encoding='utf-8').writelines(f"Empezando Extraer Preguntas hechas del usuario. {title}\n")
         print(f"Total de preguntas: {total_questions}")
-        open("acciones.log", 'a', encoding='utf-8').writelines(f"Total de preguntas: {total_questions}")
+        open("acciones.log", 'a', encoding='utf-8').writelines(f"Total de preguntas: {total_questions}\n")
         after = 0
-        rango = round(total_questions / 20)
-        for i in range(rango):
+        has_next_page = True
+        ### PREGUNTAS ###
+        while has_next_page:
             payload = {
                 "queryName": "UserProfileQuestions_Questions_Query",
                 "extensions": {
@@ -97,6 +101,8 @@ try:
             r = s.post('https://www.quora.com/graphql/gql_para_POST?q=UserProfileQuestions_Questions_Query', data=json.dumps(payload))
             data = r.json()
             data_preguntas = data['data']['user']['recentPublicQuestionsConnection']['edges']
+            siguiente_pagina = data['data']['user']['recentPublicQuestionsConnection']['pageInfo']['endCursor']
+            has_next_page = data['data']['user']['recentPublicQuestionsConnection']['pageInfo']['hasNextPage']
             preguntas = list()
             for pregunta in data_preguntas:
                 titulo = json.loads(pregunta['node']['title'])['sections'][0]['spans'][0]['text']
@@ -107,10 +113,12 @@ try:
                 for pregunta in preguntas:
                     writer.writerow({"Preguntas": pregunta})
                 csvdata.close()
-            after += 20
-            print(f"Agregados {str(after)} en el CSV...")
-            open("acciones.log", 'a', encoding='utf-8').writelines(f"Agregados {str(after)} en el CSV...")
-            sleep(5)
+            if has_next_page:
+                after = siguiente_pagina
+                print(f"Agregados {str(after)} en el CSV...")
+                open("acciones.log", 'a', encoding='utf-8').writelines(f"Agregados {str(after)} en el CSV...\n")
+                sleep(5)
 except:
     error = traceback.format_exc()
-    open("error.log", 'a', encoding="UTF-8").writelines(error)
+    open("error.log", 'a', encoding="UTF-8").writelines(f"{error}")
+    open("error.log", 'a', encoding="UTF-8").writelines(f"{url}")

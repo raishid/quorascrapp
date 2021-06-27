@@ -44,6 +44,7 @@ try:
         print(f"Total de preguntas: {total_answers} {title}")
         open("acciones.log", 'a', encoding='utf-8').writelines(f"Total de preguntas: {total_answers} {title}\n")
         has_next_page = True
+        intentos = 0
         while has_next_page:
             payload = {
                 "queryName": "UserProfileAnswersMostRecent_RecentAnswers_Query",
@@ -57,27 +58,34 @@ try:
                 }
             }
             r = s.post('https://www.quora.com/graphql/gql_para_POST?q=UserProfileAnswersMostRecent_RecentAnswers_Query', data=json.dumps(payload))
-            data = r.json()
-            data_preguntas = data['data']['user']['recentPublicAndPinnedAnswersConnection']['edges']
-            siguiente_pagina = data['data']['user']['recentPublicAndPinnedAnswersConnection']['pageInfo']['endCursor']
-            has_next_page = data['data']['user']['recentPublicAndPinnedAnswersConnection']['pageInfo']['hasNextPage']
-            preguntas = list()
+            try:
+                data = r.json()
+                data_preguntas = data['data']['user']['recentPublicAndPinnedAnswersConnection']['edges']
+                siguiente_pagina = data['data']['user']['recentPublicAndPinnedAnswersConnection']['pageInfo']['endCursor']
+                has_next_page = data['data']['user']['recentPublicAndPinnedAnswersConnection']['pageInfo']['hasNextPage']
+                preguntas = list()
 
-            for pregunta in data_preguntas:
-                titulo = json.loads(pregunta['node']['question']['title'])['sections'][0]['spans'][0]['text']
-                preguntas.append(titulo)
-            with open(f"{title}.csv", 'a', encoding='UTF-8') as csvdata:
-                cabeceras = ["Preguntas", "perfil"]
-                writer = csv.DictWriter(csvdata, fieldnames=cabeceras, lineterminator='\n')
-                for pregunta in preguntas:
-                    writer.writerow({"Preguntas": pregunta})
-                csvdata.close()
+                for pregunta in data_preguntas:
+                    titulo = json.loads(pregunta['node']['question']['title'])['sections'][0]['spans'][0]['text']
+                    preguntas.append(titulo)
+                with open(f"{title}.csv", 'a', encoding='UTF-8') as csvdata:
+                    cabeceras = ["Preguntas", "perfil"]
+                    writer = csv.DictWriter(csvdata, fieldnames=cabeceras, lineterminator='\n')
+                    for pregunta in preguntas:
+                        writer.writerow({"Preguntas": pregunta})
+                    csvdata.close()
 
-            if has_next_page:
-                after = siguiente_pagina
-                print(f"Agregados {str(after)} en el CSV...")
-                open("acciones.log", 'a', encoding='utf-8').writelines(f"Agregados {str(after)} en el CSV...\n")
+                if has_next_page:
+                    after = siguiente_pagina
+                    print(f"Agregados {str(after)} en el CSV...")
+                    open("acciones.log", 'a', encoding='utf-8').writelines(f"Agregados {str(after)} en el CSV...\n")
+                    sleep(5)
+            except TypeError:
+                print("Error Reintentando intentos: ", intentos)
                 sleep(5)
+                intentos += 1
+                if intentos == 5:
+                    r.json()
 
         print(f"Empezando Extraer Preguntas hechas del usuario. {title}")
         open("acciones.log", 'a', encoding='utf-8').writelines(f"Empezando Extraer Preguntas hechas del usuario. {title}\n")
@@ -85,6 +93,7 @@ try:
         open("acciones.log", 'a', encoding='utf-8').writelines(f"Total de preguntas: {total_questions}\n")
         after = 0
         has_next_page = True
+        intentos = 0
         ### PREGUNTAS ###
         while has_next_page:
             payload = {
@@ -99,26 +108,33 @@ try:
                 }
             }
             r = s.post('https://www.quora.com/graphql/gql_para_POST?q=UserProfileQuestions_Questions_Query', data=json.dumps(payload))
-            data = r.json()
-            data_preguntas = data['data']['user']['recentPublicQuestionsConnection']['edges']
-            siguiente_pagina = data['data']['user']['recentPublicQuestionsConnection']['pageInfo']['endCursor']
-            has_next_page = data['data']['user']['recentPublicQuestionsConnection']['pageInfo']['hasNextPage']
-            preguntas = list()
-            for pregunta in data_preguntas:
-                titulo = json.loads(pregunta['node']['title'])['sections'][0]['spans'][0]['text']
-                preguntas.append(titulo)
-            with open(f"{title}.csv", 'a', encoding='UTF-8') as csvdata:
-                cabeceras = ["Preguntas", "perfil"]
-                writer = csv.DictWriter(csvdata, fieldnames=cabeceras, lineterminator='\n')
-                for pregunta in preguntas:
-                    writer.writerow({"Preguntas": pregunta})
-                csvdata.close()
-            if has_next_page:
-                after = siguiente_pagina
-                print(f"Agregados {str(after)} en el CSV...")
-                open("acciones.log", 'a', encoding='utf-8').writelines(f"Agregados {str(after)} en el CSV...\n")
+            try:
+                data = r.json()
+                data_preguntas = data['data']['user']['recentPublicQuestionsConnection']['edges']
+                siguiente_pagina = data['data']['user']['recentPublicQuestionsConnection']['pageInfo']['endCursor']
+                has_next_page = data['data']['user']['recentPublicQuestionsConnection']['pageInfo']['hasNextPage']
+                preguntas = list()
+                for pregunta in data_preguntas:
+                    titulo = json.loads(pregunta['node']['title'])['sections'][0]['spans'][0]['text']
+                    preguntas.append(titulo)
+                with open(f"{title}.csv", 'a', encoding='UTF-8') as csvdata:
+                    cabeceras = ["Preguntas", "perfil"]
+                    writer = csv.DictWriter(csvdata, fieldnames=cabeceras, lineterminator='\n')
+                    for pregunta in preguntas:
+                        writer.writerow({"Preguntas": pregunta})
+                    csvdata.close()
+                if has_next_page:
+                    after = siguiente_pagina
+                    print(f"Agregados {str(after)} en el CSV...")
+                    open("acciones.log", 'a', encoding='utf-8').writelines(f"Agregados {str(after)} en el CSV...\n")
+                    sleep(5)
+            except TypeError:
+                print("Error Reintentando intentos: ", intentos)
                 sleep(5)
+                intentos += 1
+                if intentos == 5:
+                    r.json()
 except:
     error = traceback.format_exc()
     open("error.log", 'a', encoding="UTF-8").writelines(f"{error}")
-    open("error.log", 'a', encoding="UTF-8").writelines(f"{url}")
+    open("error.log", 'a', encoding="UTF-8").writelines(f"url: {url} uid: {uid}")
